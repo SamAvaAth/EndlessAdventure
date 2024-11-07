@@ -1,16 +1,25 @@
 let player;
 let platforms = [];
 let gravity = 0.6;
-let gameSpeed = 3;
+let playerSpeed = 3;
+let jumpPower = -12;
+let platformSpacing = 200;  // Distance between platforms
 
 function setup() {
     createCanvas(800, 400);
     player = new Player();
-    platforms.push(new Platform(width / 2, height - 20, 150));
+    // Initialize the first few platforms
+    let x = 100;
+    while (x < width * 2) {
+        platforms.push(new Platform(x, random(height - 100, height - 20), random(100, 150)));
+        x += platformSpacing;
+    }
 }
 
 function draw() {
     background(135, 206, 235);  // Light blue sky
+
+    // Update and display the player
     player.update();
     player.display();
 
@@ -19,42 +28,54 @@ function draw() {
         platforms[i].update();
         platforms[i].display();
 
-        // Remove off-screen platforms and create new ones
+        // Remove off-screen platforms on the left and add new ones on the right
         if (platforms[i].isOffScreen()) {
             platforms.splice(i, 1);
-            platforms.push(new Platform(width, random(height - 100, height - 20), random(100, 200)));
+            let newX = platforms[platforms.length - 1].x + platformSpacing;
+            platforms.push(new Platform(newX, random(height - 100, height - 20), random(100, 150)));
         }
-        
+
         // Check for collision with the player
         if (platforms[i].collidesWith(player)) {
             player.landOnPlatform(platforms[i]);
         }
+    }
+
+    // If the player falls off-screen, reset the game
+    if (player.y > height) {
+        resetGame();
     }
 }
 
 class Player {
     constructor() {
         this.size = 20;
-        this.x = width / 4;
+        this.x = 100;  // Fixed horizontal position for the player
         this.y = height / 2;
         this.yVelocity = 0;
         this.onGround = false;
     }
 
     update() {
+        // Apply gravity
         this.yVelocity += gravity;
         this.y += this.yVelocity;
 
-        if (this.y > height) {
-            this.y = height;
-            this.yVelocity = 0;
-            this.onGround = true;
+        // Move the player horizontally to the right
+        this.x += playerSpeed;
+
+        // Loop player position to give the appearance of moving platforms
+        if (this.x > width / 2) {
+            for (let platform of platforms) {
+                platform.x -= playerSpeed;
+            }
+            this.x = width / 2;
         }
     }
 
     jump() {
         if (this.onGround) {
-            this.yVelocity = -12;
+            this.yVelocity = jumpPower;
             this.onGround = false;
         }
     }
@@ -82,7 +103,7 @@ class Platform {
     }
 
     update() {
-        this.x -= gameSpeed;
+        // Platform stays fixed, but the player’s movement gives the illusion of scrolling
     }
 
     isOffScreen() {
@@ -101,6 +122,16 @@ class Platform {
     display() {
         fill(0, 255, 0);
         rect(this.x, this.y, this.width, this.height);
+    }
+}
+
+function resetGame() {
+    player = new Player();
+    platforms = [];
+    let x = 100;
+    while (x < width * 2) {
+        platforms.push(new Platform(x, random(height - 100, height - 20), random(100, 150)));
+        x += platformSpacing;
     }
 }
 
