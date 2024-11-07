@@ -1,163 +1,153 @@
-let player;
-let platforms = [];
-let gravity = 0.4;
-let jumpPower = -10;
-let platformSpacing = 100;
 let score = 0;
+let question, correctAnswer;
+let userAnswer = '';
+let submitButtonX, submitButtonY, submitButtonWidth = 100, submitButtonHeight = 30;
+let columns = [];
+let fontSize = 20;
+let matrixStream = [];
 
-// Reset button properties
-let resetButtonX = 10;
-let resetButtonY = 50;
-let resetButtonWidth = 100;
-let resetButtonHeight = 30;
+// Generate initial question
+function generateQuestion() {
+    const num1 = Math.floor(Math.random() * 20) + 1;
+    const num2 = Math.floor(Math.random() * 20) + 1;
+    const operation = Math.random() > 0.5 ? '+' : '-';
+
+    question = `${num1} ${operation} ${num2}`;
+    correctAnswer = operation === '+' ? num1 + num2 : num1 - num2;
+}
+
+// Matrix background setup
+function setupMatrix() {
+    for (let i = 0; i < width / fontSize; i++) {
+        matrixStream.push(new Stream(i * fontSize));
+    }
+}
 
 function setup() {
     createCanvas(400, 600);
-    player = new Player();
-    initializePlatforms();
+    textFont('monospace');
+    textSize(32);
+    submitButtonX = width / 2 - submitButtonWidth / 2;
+    submitButtonY = height - 80;
+    generateQuestion();
+    setupMatrix();
 }
 
 function draw() {
-    background(135, 206, 235); // Light blue sky
+    background(0, 150); // Semi-transparent background for matrix effect
 
-    // Update and display the player
-    player.update();
-    player.display();
-
-    // Update and display platforms
-    for (let i = platforms.length - 1; i >= 0; i--) {
-        platforms[i].display();
-
-        // Check if player lands on a platform
-        if (platforms[i].collidesWith(player) && player.yVelocity > 0) {
-            player.jump();
-            score++;
-        }
-
-        // Remove off-screen platforms and add new ones at the top
-        if (platforms[i].isOffScreen()) {
-            platforms.splice(i, 1);
-            platforms.push(new Platform(random(width - 80), -platformSpacing, 80));
-        }
+    // Draw matrix background effect
+    for (let stream of matrixStream) {
+        stream.update();
+        stream.render();
     }
 
-    // If the player falls off the bottom of the screen, reset the game
-    if (player.y > height) {
-        resetGame();
-    }
-
-    // Draw the score
-    fill(0);
-    textSize(24);
-    text(`Score: ${score}`, 10, 30);
-
-    // Draw the reset button
-    drawResetButton();
-}
-
-class Player {
-    constructor() {
-        this.size = 20;
-        this.x = width / 2;
-        this.y = height - 50;
-        this.yVelocity = 0;
-    }
-
-    update() {
-        // Apply gravity
-        this.yVelocity += gravity;
-        this.y += this.yVelocity;
-
-        // Move platforms down if the player moves upward past a certain point
-        if (this.y < height / 2) {
-            this.y = height / 2;
-            for (let platform of platforms) {
-                platform.y += abs(this.yVelocity); // Shift platforms down
-            }
-        }
-
-        // Prevent player from going out of bounds
-        if (this.x < 0) this.x = width;
-        if (this.x > width) this.x = 0;
-    }
-
-    jump() {
-        this.yVelocity = jumpPower;
-    }
-
-    display() {
-        fill(255, 0, 0);
-        ellipse(this.x, this.y, this.size);
-    }
-}
-
-class Platform {
-    constructor(x, y, width) {
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = 10;
-    }
-
-    display() {
-        fill(0, 255, 0);
-        rect(this.x, this.y, this.width, this.height);
-    }
-
-    isOffScreen() {
-        return this.y > height;
-    }
-
-    collidesWith(player) {
-        return (
-            player.x > this.x &&
-            player.x < this.x + this.width &&
-            player.y + player.size / 2 >= this.y &&
-            player.y + player.size / 2 <= this.y + this.height
-        );
-    }
-}
-
-function initializePlatforms() {
-    platforms = [];
-    let y = height;
-    while (y > -height) {
-        platforms.push(new Platform(random(width - 80), y, 80));
-        y -= platformSpacing;
-    }
-}
-
-function resetGame() {
-    player = new Player();
-    initializePlatforms();
-    score = 0;
-}
-
-function drawResetButton() {
+    // Display the question and current score
     fill(255);
-    rect(resetButtonX, resetButtonY, resetButtonWidth, resetButtonHeight);
+    textAlign(CENTER, CENTER);
+    textSize(24);
+    text(`Score: ${score}`, width / 2, 50);
+    text(`Question: ${question}`, width / 2, 100);
+    textSize(32);
+    text(userAnswer, width / 2, 150);
+
+    // Draw the Submit Answer button
+    drawSubmitButton();
+}
+
+function drawSubmitButton() {
+    fill(255);
+    rect(submitButtonX, submitButtonY, submitButtonWidth, submitButtonHeight);
     fill(0);
     textSize(16);
     textAlign(CENTER, CENTER);
-    text("Reset Game", resetButtonX + resetButtonWidth / 2, resetButtonY + resetButtonHeight / 2);
+    text("Submit Answer", submitButtonX + submitButtonWidth / 2, submitButtonY + submitButtonHeight / 2);
 }
 
-// Detect if the reset button is clicked
 function mousePressed() {
+    // Check if submit button is clicked
     if (
-        mouseX > resetButtonX &&
-        mouseX < resetButtonX + resetButtonWidth &&
-        mouseY > resetButtonY &&
-        mouseY < resetButtonY + resetButtonHeight
+        mouseX > submitButtonX &&
+        mouseX < submitButtonX + submitButtonWidth &&
+        mouseY > submitButtonY &&
+        mouseY < submitButtonY + submitButtonHeight
     ) {
-        resetGame();
+        checkAnswer();
     }
 }
 
 function keyPressed() {
-    if (keyCode === LEFT_ARROW) {
-        player.x -= 50;
-    } else if (keyCode === RIGHT_ARROW) {
-        player.x += 50;
+    if (keyCode >= 48 && keyCode <= 57) { // Numeric keys (0-9)
+        userAnswer += key;
+    } else if (keyCode === BACKSPACE) { // Backspace key
+        userAnswer = userAnswer.slice(0, -1);
+    }
+}
+
+function checkAnswer() {
+    if (parseInt(userAnswer) === correctAnswer) {
+        score++;
+    } else {
+        score = max(0, score - 1); // Decrement score, but not below zero
+    }
+    userAnswer = '';
+    generateQuestion();
+}
+
+// Class for a single falling number in the matrix effect
+class Symbol {
+    constructor(x, y, speed) {
+        this.x = x;
+        this.y = y;
+        this.speed = speed;
+        this.value;
+        this.switchInterval = round(random(2, 20));
+    }
+
+    setToRandomSymbol() {
+        if (frameCount % this.switchInterval === 0) {
+            this.value = String(floor(random(0, 10)));
+        }
+    }
+
+    rain() {
+        this.y = (this.y >= height) ? 0 : this.y + this.speed;
+    }
+}
+
+// Class for streams of symbols in the matrix effect
+class Stream {
+    constructor(x) {
+        this.symbols = [];
+        this.totalSymbols = round(random(5, 30));
+        this.speed = random(2, 5);
+        this.x = x;
+        this.init();
+    }
+
+    init() {
+        let y = random(-1000, 0);
+        for (let i = 0; i < this.totalSymbols; i++) {
+            let symbol = new Symbol(this.x, y, this.speed);
+            symbol.setToRandomSymbol();
+            this.symbols.push(symbol);
+            y -= fontSize;
+        }
+    }
+
+    render() {
+        for (let i = 0; i < this.symbols.length; i++) {
+            fill(0, 255, 70);
+            text(this.symbols[i].value, this.symbols[i].x, this.symbols[i].y);
+            this.symbols[i].rain();
+            this.symbols[i].setToRandomSymbol();
+        }
+    }
+
+    update() {
+        for (let symbol of this.symbols) {
+            symbol.rain();
+            symbol.setToRandomSymbol();
+        }
     }
 }
