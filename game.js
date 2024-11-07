@@ -1,23 +1,24 @@
 let player;
 let platforms = [];
-let gravity = 0.6;
-let playerSpeed = 3;
-let jumpPower = -12;
-let platformSpacing = 2;  // Distance between platforms
+let gravity = 0.4;
+let jumpPower = -10;
+let platformSpacing = 100;
+let score = 0;
+
+// Reset button properties
+let resetButtonX = 10;
+let resetButtonY = 50;
+let resetButtonWidth = 100;
+let resetButtonHeight = 30;
 
 function setup() {
-    createCanvas(800, 400);
+    createCanvas(400, 600);
     player = new Player();
-    // Initialize the first few platforms
-    let x = 100;
-    while (x < width * 2) {
-        platforms.push(new Platform(x, random(height - 100, height - 20), random(100, 150)));
-        x += platformSpacing;
-    }
+    initializePlatforms();
 }
 
 function draw() {
-    background(135, 206, 235);  // Light blue sky
+    background(135, 206, 235); // Light blue sky
 
     // Update and display the player
     player.update();
@@ -25,35 +26,41 @@ function draw() {
 
     // Update and display platforms
     for (let i = platforms.length - 1; i >= 0; i--) {
-        platforms[i].update();
         platforms[i].display();
 
-        // Remove off-screen platforms on the left and add new ones on the right
-        if (platforms[i].isOffScreen()) {
-            platforms.splice(i, 1);
-            let newX = platforms[platforms.length - 1].x + platformSpacing;
-            platforms.push(new Platform(newX, random(height - 100, height - 20), random(100, 150)));
+        // Check if player lands on a platform
+        if (platforms[i].collidesWith(player) && player.yVelocity > 0) {
+            player.jump();
+            score++;
         }
 
-        // Check for collision with the player
-        if (platforms[i].collidesWith(player)) {
-            player.landOnPlatform(platforms[i]);
+        // Remove off-screen platforms and add new ones at the top
+        if (platforms[i].isOffScreen()) {
+            platforms.splice(i, 1);
+            platforms.push(new Platform(random(width - 80), -platformSpacing, 80));
         }
     }
 
-    // If the player falls off-screen, reset the game
+    // If the player falls off the bottom of the screen, reset the game
     if (player.y > height) {
         resetGame();
     }
+
+    // Draw the score
+    fill(0);
+    textSize(24);
+    text(`Score: ${score}`, 10, 30);
+
+    // Draw the reset button
+    drawResetButton();
 }
 
 class Player {
     constructor() {
         this.size = 20;
-        this.x = 100;  // Fixed horizontal position for the player
-        this.y = height / 2;
+        this.x = width / 2;
+        this.y = height - 50;
         this.yVelocity = 0;
-        this.onGround = false;
     }
 
     update() {
@@ -61,31 +68,21 @@ class Player {
         this.yVelocity += gravity;
         this.y += this.yVelocity;
 
-        // Move the player horizontally to the right
-        this.x += playerSpeed;
-
-        // Loop player position to give the appearance of moving platforms
-        if (this.x > width / 2) {
+        // Move platforms down if the player moves upward past a certain point
+        if (this.y < height / 2) {
+            this.y = height / 2;
             for (let platform of platforms) {
-                platform.x -= playerSpeed;
+                platform.y += abs(this.yVelocity); // Shift platforms down
             }
-            this.x = width / 2;
         }
+
+        // Prevent player from going out of bounds
+        if (this.x < 0) this.x = width;
+        if (this.x > width) this.x = 0;
     }
 
     jump() {
-        if (this.onGround) {
-            this.yVelocity = jumpPower;
-            this.onGround = false;
-        }
-    }
-
-    landOnPlatform(platform) {
-        if (this.yVelocity > 0) {
-            this.yVelocity = 0;
-            this.y = platform.y - this.size / 2;
-            this.onGround = true;
-        }
+        this.yVelocity = jumpPower;
     }
 
     display() {
@@ -102,41 +99,65 @@ class Platform {
         this.height = 10;
     }
 
-    update() {
-        // Platform stays fixed, but the player’s movement gives the illusion of scrolling
+    display() {
+        fill(0, 255, 0);
+        rect(this.x, this.y, this.width, this.height);
     }
 
     isOffScreen() {
-        return this.x + this.width < 0;
+        return this.y > height;
     }
 
     collidesWith(player) {
         return (
-            player.x + player.size / 2 > this.x &&
-            player.x - player.size / 2 < this.x + this.width &&
+            player.x > this.x &&
+            player.x < this.x + this.width &&
             player.y + player.size / 2 >= this.y &&
-            player.y - player.size / 2 <= this.y + this.height
+            player.y + player.size / 2 <= this.y + this.height
         );
     }
+}
 
-    display() {
-        fill(0, 255, 0);
-        rect(this.x, this.y, this.width, this.height);
+function initializePlatforms() {
+    platforms = [];
+    let y = height;
+    while (y > -height) {
+        platforms.push(new Platform(random(width - 80), y, 80));
+        y -= platformSpacing;
     }
 }
 
 function resetGame() {
     player = new Player();
-    platforms = [];
-    let x = 100;
-    while (x < width * 2) {
-        platforms.push(new Platform(x, random(height - 100, height - 20), random(100, 150)));
-        x += platformSpacing;
+    initializePlatforms();
+    score = 0;
+}
+
+function drawResetButton() {
+    fill(255);
+    rect(resetButtonX, resetButtonY, resetButtonWidth, resetButtonHeight);
+    fill(0);
+    textSize(16);
+    textAlign(CENTER, CENTER);
+    text("Reset Game", resetButtonX + resetButtonWidth / 2, resetButtonY + resetButtonHeight / 2);
+}
+
+// Detect if the reset button is clicked
+function mousePressed() {
+    if (
+        mouseX > resetButtonX &&
+        mouseX < resetButtonX + resetButtonWidth &&
+        mouseY > resetButtonY &&
+        mouseY < resetButtonY + resetButtonHeight
+    ) {
+        resetGame();
     }
 }
 
 function keyPressed() {
-    if (key === ' ') {
-        player.jump();
+    if (keyCode === LEFT_ARROW) {
+        player.x -= 50;
+    } else if (keyCode === RIGHT_ARROW) {
+        player.x += 50;
     }
 }
