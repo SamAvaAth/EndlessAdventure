@@ -3,7 +3,7 @@ let platforms = [];
 let gravity = 0.6;
 let playerSpeed = 3;
 let jumpPower = -12;
-let platformSpacing = 200;  // Distance between platforms
+let platformSpacing = 2;  // Distance between platforms
 
 function setup() {
     createCanvas(800, 400);
