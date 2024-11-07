@@ -1,54 +1,60 @@
-let score = 0;
-let question, correctAnswer;
 let userAnswer = '';
+let correctAnswer = 3;
+let feedback = '';
+
 let submitButtonX, submitButtonY, submitButtonWidth = 100, submitButtonHeight = 30;
-
-// Generate initial question
-function generateQuestion() {
-    const num1 = Math.floor(Math.random() * 20) + 1;
-    const num2 = Math.floor(Math.random() * 20) + 1;
-    const operation = Math.random() > 0.5 ? '+' : '-';
-
-    question = `${num1} ${operation} ${num2}`;
-    correctAnswer = operation === '+' ? num1 + num2 : num1 - num2;
-}
+let refreshButtonX, refreshButtonY, refreshButtonWidth = 100, refreshButtonHeight = 30;
 
 function setup() {
-    createCanvas(400, 600);
-    textFont('monospace');
+    createCanvas(400, 300);
     textSize(32);
-    submitButtonX = width / 2 - submitButtonWidth / 2;
+
+    // Position buttons
+    submitButtonX = width / 2 - submitButtonWidth - 10;
     submitButtonY = height - 80;
-    generateQuestion();
+    refreshButtonX = width / 2 + 10;
+    refreshButtonY = height - 80;
 }
 
 function draw() {
-    background(135, 206, 235); // Light blue background
+    background(0);
 
-    // Display the question and current score
-    fill(0);
+    // Display the equation and user input
+    fill(255);
     textAlign(CENTER, CENTER);
     textSize(24);
-    text(`Score: ${score}`, width / 2, 50);
-    text(`Question: ${question}`, width / 2, 100);
-    textSize(32);
-    text(userAnswer, width / 2, 150);
+    text("Solve: 1 + 2", width / 2, 100);
+    text("Your Answer: " + userAnswer, width / 2, 150);
+    text(feedback, width / 2, 200);
 
-    // Draw the Submit Answer button
+    // Draw the Submit and Refresh buttons
     drawSubmitButton();
+    drawRefreshButton();
 }
 
+// Draw the Submit Answer button
 function drawSubmitButton() {
     fill(255);
     rect(submitButtonX, submitButtonY, submitButtonWidth, submitButtonHeight);
     fill(0);
     textSize(16);
     textAlign(CENTER, CENTER);
-    text("Submit Answer", submitButtonX + submitButtonWidth / 2, submitButtonY + submitButtonHeight / 2);
+    text("Submit", submitButtonX + submitButtonWidth / 2, submitButtonY + submitButtonHeight / 2);
 }
 
+// Draw the Refresh button
+function drawRefreshButton() {
+    fill(255);
+    rect(refreshButtonX, refreshButtonY, refreshButtonWidth, refreshButtonHeight);
+    fill(0);
+    textSize(16);
+    textAlign(CENTER, CENTER);
+    text("Refresh", refreshButtonX + refreshButtonWidth / 2, refreshButtonY + refreshButtonHeight / 2);
+}
+
+// Handle mouse clicks for buttons
 function mousePressed() {
-    // Check if submit button is clicked
+    // Check if Submit button is clicked
     if (
         mouseX > submitButtonX &&
         mouseX < submitButtonX + submitButtonWidth &&
@@ -57,8 +63,19 @@ function mousePressed() {
     ) {
         checkAnswer();
     }
+    
+    // Check if Refresh button is clicked
+    if (
+        mouseX > refreshButtonX &&
+        mouseX < refreshButtonX + refreshButtonWidth &&
+        mouseY > refreshButtonY &&
+        mouseY < refreshButtonY + refreshButtonHeight
+    ) {
+        refreshGame();
+    }
 }
 
+// Handle keyboard input for the answer
 function keyPressed() {
     if (keyCode >= 48 && keyCode <= 57) { // Numeric keys (0-9)
         userAnswer += key;
@@ -67,12 +84,17 @@ function keyPressed() {
     }
 }
 
+// Check the answer when "Submit" is clicked
 function checkAnswer() {
     if (parseInt(userAnswer) === correctAnswer) {
-        score++;
+        feedback = "Correct!";
     } else {
-        score = max(0, score - 1); // Decrement score, but not below zero
+        feedback = "Incorrect, try again.";
     }
+}
+
+// Reset the game when "Refresh" is clicked
+function refreshGame() {
     userAnswer = '';
-    generateQuestion();
+    feedback = '';
 }
