@@ -41,7 +41,7 @@ body, html {
   width: 30px;
   height: 30px;
   background-color: #3498db;
-  animation: moveObstacle 2s infinite linear;
+  animation: moveObstacle 8s infinite linear;
 }
 
 @keyframes moveObstacle {
